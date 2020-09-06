@@ -16,6 +16,11 @@
  * limitations under the License.
  */
 
+#ifdef __linux__
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 #include <iostream>
 #include <algorithm> 
 #include <cmath> 
