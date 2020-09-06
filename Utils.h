@@ -118,6 +118,11 @@ inline void FromQuadFile(const std::string name, const std::string& s)
 */
 
 inline bool fileExists(const std::string& name) {
-    struct stat buffer;
-    return (stat(name.c_str(), &buffer) == 0);
+#ifdef _WIN32
+    struct _stat64 buffer;
+    return (_stat64(name.c_str(), &buffer) == 0);
+#else
+    struct stat64 buffer;
+    return (stat64(name.c_str(), &buffer) == 0);
+#endif
 }
