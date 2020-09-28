@@ -28,7 +28,7 @@
 #include <fstream>
 #include "Utils.h"
 
-void encodeFile(const char* fileName) {
+bool encodeFile(const char* fileName) {
     std::ifstream file(fileName, std::ifstream::binary);
 
     const std::string fileName_s = fileName;
@@ -36,7 +36,7 @@ void encodeFile(const char* fileName) {
     if (!fileExists(fileName))
     {
         std::cout << "No valid file provided" << "\n";
-        return;
+        return false;
     }
 
 #ifdef _WIN32
@@ -72,31 +72,31 @@ void encodeFile(const char* fileName) {
     ofs.open(fileName_s + ".qdc", std::ofstream::out | std::ofstream::trunc);
     ofs.close();
     std::ofstream readFile(fileName_s + ".qdc", std::fstream::in | std::fstream::out | std::fstream::app);
-    if (readFile.is_open())
+    if (readFile.is_open() && file.is_open())
     {
-    for (size_t chunk = 0; chunk < chunks; ++chunk)
-    {
-        const size_t currentChunkSize =
-            chunk == chunks - 1
-            ? sizeLastChunk
-            : chunkSize;
-
-        std::vector<char> chunkData(currentChunkSize);
-        file.read(&chunkData[0],
-            currentChunkSize);
-
-        for (const char c : chunkData)
+        for (size_t chunk = 0; chunk < chunks; ++chunk)
         {
-            const std::string s(1, c);
-          
-            readFile << ToQuadFile(s);
+            const size_t currentChunkSize =
+                chunk == chunks - 1
+                ? sizeLastChunk
+                : chunkSize;
+
+            std::vector<char> chunkData(currentChunkSize);
+            file.read(&chunkData[0], currentChunkSize);
+
+            for (const unsigned char c : chunkData)
+            {
+                readFile << ToQuadFile(c);
+            }
         }
+        return true;
+        readFile.close();
+        file.close();
     }
-    readFile.close();
-    }
+    return false;
 }
 
-void decodeFile(const char* fileName) {
+bool decodeFile(const char* fileName) {
     std::ifstream file(fileName, std::ifstream::binary);
 
     const std::string fileName_s = fileName;
@@ -104,7 +104,7 @@ void decodeFile(const char* fileName) {
     if (!fileExists(fileName))
     {
         std::cout << "No valid file provided" << "\n";
-        return;
+        return false;
     }
 
 #ifdef _WIN32
@@ -141,8 +141,8 @@ void decodeFile(const char* fileName) {
     ofs.open(fileName_s.substr(0, fileName_s.length() - 4), std::ofstream::out | std::ofstream::trunc);
     ofs.close();
     std::ofstream readFile(fileName_s.substr(0, fileName_s.length() - 4), std::ios_base::binary | std::fstream::app);
-    if (readFile.is_open())
-    {   
+    if (readFile.is_open() && file.is_open())
+    {
         for (size_t chunk = 0; chunk < chunks; ++chunk)
         {
             const size_t currentChunkSize =
@@ -151,22 +151,24 @@ void decodeFile(const char* fileName) {
                 : chunkSize;
 
             std::vector<char> chunkData(currentChunkSize);
-            file.read(&chunkData[0],
-                currentChunkSize);
-        
-            std::string str(chunkData.begin(), chunkData.end());
+            file.read(&chunkData[0], currentChunkSize);
+
+            const std::string str(chunkData.begin(), chunkData.end());
             std::string output = "";
-            const int length = (int) str.length();
+            const int length = (int)str.length();
             const int segments = length / 4;
 
             for (int i = 0; i < segments; i++) {
                 const int begin = i * 4;
                 const int binVal = fromBinary(str.substr(begin, 4));
-                readFile << (unsigned char) binVal;
+                readFile << (unsigned char)binVal;
             }
         }
         readFile.close();
+        file.close();
+        return true;
     }
+    return false;
 }
 
 int main(int argc, const char* argv[])
@@ -182,12 +184,12 @@ int main(int argc, const char* argv[])
     if (argc < 2) {
         std::cout << "Please use `quadric --help` for the usage guide" << "\n";
     }
-    else if(argc < 3 && help.compare(argv[1]) == 0){
-        #ifdef _WIN32
+    else if (argc < 3 && help.compare(argv[1]) == 0) {
+#ifdef _WIN32
         std::cout << "      -- THIS DEMO HAS BEEN COMPILED FOR WINDOWS x86-64--" << "\n\n";
-        #else
+#else
         std::cout << "      -- THIS DEMO HAS BEEN COMPILED FOR LINUX / MAC--" << "\n\n";
-        #endif
+#endif
         std::cout << "      -- Quadric v3 Demo Help --" << "\n\n";
         std::cout << "  -e <TEXT>       |   encode a specific file" << "\n";
         std::cout << "  -d <QUADv3>     |   decode a .qdc file" << "\n\n";
@@ -195,11 +197,10 @@ int main(int argc, const char* argv[])
     }
     else if (argc < 4) {
         if (enc.compare(argv[1]) == 0) {
-            encodeFile(argv[2]);
-            std::cout << "File successfully wrapped!" << "\n";
-        } else if (dec.compare(argv[1]) == 0) {
-            decodeFile(argv[2]);
-            std::cout << "File successfully unwrapped!" << "\n";
+            std::cout << (encodeFile(argv[2]) ? "File successfully wrapped!" : "Task failed!") << "\n";
+        }
+        else if (dec.compare(argv[1]) == 0) {
+            std::cout << (decodeFile(argv[2]) ? "File successfully unwrapped!" : "Task failed!") << "\n";
         }
         else {
             std::cout << "Please use `quadric --help` for the usage guide" << "\n";
