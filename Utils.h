@@ -21,31 +21,30 @@
 inline std::string toBinary(int n)
 {
     std::string r;
-    r.reserve(4);
     while (n != 0) {
 
-        const int value = n - (n / 4) * 4;
+        const int value = n - (n / 4L) * 4L;
 
         switch (value) {
         case 0: {
-            r.insert(0, 1, 'A');
+            r = "A" + r;
             break;
         }
         case 1: {
-            r.insert(0, 1, 'T');
+            r = "T" + r;
             break;
         }
         case 2: {
-            r.insert(0, 1, 'G');
+            r = "G" + r;
             break;
         }
         case 3: {
-            r.insert(0, 1, 'C');
+            r = "C" + r;
             break;
         }
         }
 
-        n /= 4;
+        n /= 4L;
     }
     return r;
 }
@@ -56,9 +55,13 @@ inline int fromBinary(std::string n)
     int index = 0;
 
     std::reverse(n.begin(), n.end());
-    for (const char c : n) {
-        const long factor = powl(4, index);
+    for (char& c : n) {
+        const long factor = (long)powl(4L, (long)index);
         switch (c) {
+        case 'A': {
+            //  r += 0L * factor;
+            break;
+        }
         case 'T': {
             r += 1L * factor;
             break;
@@ -77,18 +80,42 @@ inline int fromBinary(std::string n)
     return r;
 }
 
-inline std::string ToQuadFile(const unsigned char s)
+inline std::string ToQuadFile(const std::string& s)
 {
     std::string ret;
-    std::string bin = toBinary((const int)s);
 
-    while (bin.length() < 4) {
-        bin = "A" + bin;
+    for (std::string::size_type i = 0; i < s.length(); ++i)
+    {
+        const char at_i = s[i];
+        std::string bin = toBinary((int)(unsigned char)at_i);
+
+        while (bin.length() < 4) {
+            bin = "A" + bin;
+        }
+        ret = ret + bin;
     }
-    ret = ret + bin;
 
     return ret;
 }
+
+/*
+inline void FromQuadFile(const std::string name, const std::string& s)
+{
+    std::string output = "";
+    const int length = (int) s.length();
+    const int segments = length / 4;
+    std::ofstream writeFile(name.substr(0, name.length() - 4), std::ios_base::binary);
+    if (writeFile.is_open())
+    {
+        for (int i = 0; i < segments; i++) {
+            const int begin = i * 4;
+            int binVal = fromBinary(s.substr(begin, 4));
+            writeFile << (unsigned char) binVal;
+        }
+        writeFile.close();
+    }
+}
+*/
 
 inline bool fileExists(const std::string& name) {
 #ifdef _WIN32
